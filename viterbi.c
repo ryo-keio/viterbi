@@ -42,182 +42,127 @@ int main() {
 		ok = error = 0;
 		i = 0;
 
-		//while (i < TEST) {   // 誤りが200回起きるまで，または100000回繰り返すまで
-		i++;
-		// 送信データの生成
-		for (j = 0; j < LENGTH - 3; j++){
-			if (RAND < 0.5) {
-				tdata[j] = 0;
-			} else {
-				tdata[j] = 1;
-			}
-		}
-
-		/* 終端ビット系列の付加 */
-		tdata[LENGTH - 3] = 0;
-		tdata[LENGTH - 2] = 0;
-		tdata[LENGTH - 1] = 0;
-		/* 畳み込み符号化 */
-		for (j = 0; j < LENGTH; j++) {
-
-			//debug
-			/*
-			   printf("| \n|");
-			   printf("code : %d\t",tdata[j]);
-			   printf("SR : ");
-			   */
-
-			m[0] = tdata[j];
-			for (k = 0; k < CONSTRAINTLENGTH; k++) {
-
-				//printf("%d,", m[3-k]);//debug
-
-				if(gpolynomial[2*k])
-					tcode[2*j] ^= m[k];
-				if(gpolynomial[2*k +1])
-					tcode[2*j + 1] ^= m[k];
+		while (i < TEST) {   // 誤りが200回起きるまで，または100000回繰り返すまで
+			i++;
+			// 送信データの生成
+			for (j = 0; j < LENGTH - 3; j++){
+				if (RAND < 0.5) {
+					tdata[j] = 0;
+				} else {
+					tdata[j] = 1;
+				}
 			}
 
-			//debug
-			/*
-			   printf("\tdata : %2d,", tcode[2*j]);
-			   printf("%2d", tcode[2*j+1]);
-			   */
+			/* 終端ビット系列の付加 */
+			tdata[LENGTH - 3] = 0;
+			tdata[LENGTH - 2] = 0;
+			tdata[LENGTH - 1] = 0;
 
-			for (k = CONSTRAINTLENGTH - 1; k >= 1; k--)
-				m[k] = m[k-1];
-		}
-		/*
-		   for (j = 0; j < LENGTH; j++) {
-		   printf("¦ \n¦ ");
-		   printf("%d\t", tcode[2*j]);
-		   printf("%d\t", tcode[2*j+1]);
-		   }
-		   */
-		/* BPSK変調 */
-		for (j = 0; j < LT3; j++) {
-			transmit[j] = -1.0;
-			if(tcode[j])
-				transmit[j] = 1.0;
-		}
-
-		/* 伝送 */
-		for (j = 0; j < LT3; j++){
-			receive[j] = transmit[j] + awgn(sn);
-		}
-		/* BPSK復調 */
-		for (j = 0; j < LT3; j++) {
-			rcode[j] = 0;
-			if(receive[j] > 0)
-				rcode[j] = 1;
-		}
-		/*
-		   for (j = 0; j < LENGTH; j++) {
-		   printf("\tdata : %d\t", rcode[2*j]);
-		   printf("%d\n", rcode[2*j+1]);
-		   }
-		   */
-		printf("\n"); 
-		/* ビタビ復号 */
-		int sum000[259], sum001[259], sum010[259], sum011[259], sum100[259], sum101[259], sum110[259], sum111[259];
-		int pre000[259], pre001[259], pre010[259], pre011[259], pre100[259], pre101[259], pre110[259], pre111[259];
-		sum000[0] = rcode[2*0] + rcode[2*0 + 1];
-		sum001[0] = (1-rcode[2*0]) + (1-rcode[2*0 + 1]);
-		pre000[0] = 0;
-		pre001[0] = 0;
-		sum000[1] = sum000[0] + rcode[2*1] + rcode[2*1 + 1]; 
-		sum001[1] = sum000[0] + (1-rcode[2*1]) + (1-rcode[2*1 + 1]);
-		sum010[1] = sum001[0] + (1-rcode[2*1]) + (1-rcode[2*1 + 1]); 
-		sum011[1] = sum001[0] + rcode[2*1] + rcode[2*1 + 1];
-		pre000[1] = 0;
-		pre001[1] = 0;
-		pre010[1] = 4;
-		pre011[1] = 4;
-		sum000[2] = sum000[1] +    rcode[2*2]  + rcode[2*2 + 1]; 
-		sum001[2] = sum000[1] + (1-rcode[2*2]) + (1-rcode[2*2 + 1]);
-		sum010[2] = sum001[1] + (1-rcode[2*2]) + (1-rcode[2*2 + 1]); 
-		sum011[2] = sum001[1] +    rcode[2*2]  + rcode[2*2 + 1];
-		sum100[2] = sum010[1] +    rcode[2*2]  + (1-rcode[2*2 + 1]);
-		sum101[2] = sum010[1] + (1-rcode[2*2]) + rcode[2*2 + 1];
-		sum110[2] = sum011[1] + (1-rcode[2*2]) + rcode[2*2 + 1];
-		sum111[1] = sum011[1] +    rcode[2*2]  + (1-rcode[2*2 + 1]);
-		pre000[2] = 0;
-		pre001[2] = 0;
-		pre010[2] = 4;
-		pre011[2] = 4;
-		pre100[2] = 2;
-		pre101[2] = 2;
-		pre110[2] = 6;
-		pre111[2] = 6;
-
-		int dh1, dh2, rh1, rh2;
-		for (j = 3; j < 259; j++) {
-			dh1 = rcode[2*j];
-			dh2 = rcode[2*j+1];
-			rh1 = 1-rcode[2*j];
-			rh2 = 1-rcode[2*j+1];
-
-
-			sum000[j] = (sum000[j-1] + dh1 + dh2) < (sum100[j-1] + rh1 + rh2) ? (sum000[j-1] + dh1 + dh2) : (sum100[j-1] + rh1 + rh2);
-			sum001[j] = (sum000[j-1] + rh1 + rh2) < (sum100[j-1] + dh1 + dh2) ? (sum000[j-1] + rh1 + rh2) : (sum100[j-1] + dh1 + dh2); 
-			sum010[j] = (sum001[j-1] + rh1 + rh2) < (sum101[j-1] + dh1 + dh2) ? (sum001[j-1] + rh1 + rh2) : (sum101[j-1] + dh1 + dh2);
-			sum011[j] = (sum001[j-1] + dh1 + dh2) < (sum101[j-1] + rh1 + rh2) ? (sum001[j-1] + dh1 + dh2) : (sum101[j-1] + rh1 + rh2);
-			sum100[j] = (sum010[j-1] + dh1 + rh2) < (sum110[j-1] + rh1 + dh2) ? (sum010[j-1] + dh1 + rh2) : (sum110[j-1] + rh1 + dh2);
-			sum101[j] = (sum010[j-1] + rh1 + dh2) < (sum110[j-1] + dh1 + rh2) ? (sum010[j-1] + rh1 + dh2) : (sum110[j-1] + dh1 + rh2);
-			sum110[j] = (sum011[j-1] + rh1 + dh2) < (sum111[j-1] + dh1 + rh2) ? (sum011[j-1] + rh1 + dh2) : (sum111[j-1] + dh1 + rh2);
-			sum111[j] = (sum011[j-1] + dh1 + rh2) < (sum111[j-1] + rh1 + dh2) ? (sum011[j-1] + dh1 + rh2) : (sum111[j-1] + rh1 + dh2);
-
-			//debug
-			//printf("%03d: %2d, %2d, %2d, %2d, %2d, %2d, %2d, %2d -- %d, %d, %d, %d\n", j,sum000[j],sum100[j],sum010[j],sum110[j],sum001[j],sum101[j],sum011[j],sum111[j], dh1,dh2,rh1,rh2);
-
-
-			pre000[j] = (sum000[j-1] + dh1 + dh2) < (sum100[j-1] + rh1 + rh2) ? 0 : 1;
-			pre001[j] = (sum000[j-1] + rh1 + rh2) < (sum100[j-1] + dh1 + dh2) ? 0 : 1;
-			pre010[j] = (sum001[j-1] + rh1 + rh2) < (sum101[j-1] + dh1 + dh2) ? 4 : 5;
-			pre011[j] = (sum001[j-1] + dh1 + dh2) < (sum101[j-1] + rh1 + rh2) ? 4 : 5;
-			pre100[j] = (sum010[j-1] + dh1 + rh2) < (sum110[j-1] + rh1 + dh2) ? 2 : 3; 
-			pre101[j] = (sum010[j-1] + rh1 + dh2) < (sum110[j-1] + dh1 + rh2) ? 2 : 3; 
-			pre110[j] = (sum011[j-1] + rh1 + dh2) < (sum111[j-1] + dh1 + rh2) ? 6 : 7; 
-			pre111[j] = (sum011[j-1] + dh1 + rh2) < (sum111[j-1] + rh1 + dh2) ? 6 : 7; 
-		}
-		int state = 0;
-		for (j = 258; j >= 0; j--) {
-			rdata[j] = (state == 0 || state == 1 || state == 2 || state == 3) ? 0 : 1;
-			if(state == 0) {
-				state = pre000[j];
-			} else if(state == 1) {
-				state = pre100[j];
-			} else if(state == 2) {
-				state = pre010[j];
-			} else if(state == 3) {
-				state = pre110[j];
-			} else if(state == 4) {
-				state = pre001[j];
-			} else if(state == 5) {
-				state = pre101[j];
-			} else if(state == 6) {
-				state = pre011[j];
-			} else if(state == 7) {
-				state = pre111[j];
+			/* 畳み込み符号化 */
+			for (j = 0; j < LENGTH; j++) {
+				m[0] = tdata[j];
+				for (k = 0; k < CONSTRAINTLENGTH; k++) {
+					if(gpolynomial[2*k])
+						tcode[2*j] ^= m[k];
+					if(gpolynomial[2*k +1])
+						tcode[2*j + 1] ^= m[k];
+				}
+				for (k = CONSTRAINTLENGTH - 1; k >= 1; k--)
+					m[k] = m[k-1];
 			}
-		}
-		//debug
-		/*
-		   for (j = 0; j < LENGTH; j++){
-		   printf("%d ", rdata[j]);
-		   }
-		   */
 
-		/* 誤り回数計算 */
-		for (j = 0; j < LENGTH; j++){
-			if (rdata[j] == tdata[j]){
-				ok++;
-			} else {
-				error++;
+			/* BPSK変調 */
+			for (j = 0; j < LT3; j++) {
+				transmit[j] = -1.0;
+				if(tcode[j])
+					transmit[j] = 1.0;
 			}
+
+			/* 伝送 */
+			for (j = 0; j < LT3; j++){
+				receive[j] = transmit[j] + awgn(sn);
+			}
+
+			/* BPSK復調 */
+			for (j = 0; j < LT3; j++) {
+				rcode[j] = 0;
+				if(receive[j] > 0)
+					rcode[j] = 1;
+			}
+
+			/* ビタビ復号 */
+			int sum000[259], sum001[259], sum010[259], sum011[259], sum100[259], sum101[259], sum110[259], sum111[259];
+			int pre000[259], pre001[259], pre010[259], pre011[259], pre100[259], pre101[259], pre110[259], pre111[259];
+			sum000[0] = rcode[2*0] + rcode[2*0 + 1];
+			sum001[0] = (1-rcode[2*0]) + (1-rcode[2*0 + 1]);
+			pre000[0] = 0;
+			pre001[0] = 0;
+			sum000[1] = sum000[0] + rcode[2*1] + rcode[2*1 + 1]; 
+			sum001[1] = sum000[0] + (1-rcode[2*1]) + (1-rcode[2*1 + 1]);
+			sum010[1] = sum001[0] + (1-rcode[2*1]) + (1-rcode[2*1 + 1]); 
+			sum011[1] = sum001[0] + rcode[2*1] + rcode[2*1 + 1];
+			pre000[1] = 0;
+			pre001[1] = 0;
+			pre010[1] = 4;
+			pre011[1] = 4;
+			sum000[2] = sum000[1] +    rcode[2*2]  + rcode[2*2 + 1]; 
+			sum001[2] = sum000[1] + (1-rcode[2*2]) + (1-rcode[2*2 + 1]);
+			sum010[2] = sum001[1] + (1-rcode[2*2]) + (1-rcode[2*2 + 1]); 
+			sum011[2] = sum001[1] +    rcode[2*2]  + rcode[2*2 + 1];
+			sum100[2] = sum010[1] +    rcode[2*2]  + (1-rcode[2*2 + 1]);
+			sum101[2] = sum010[1] + (1-rcode[2*2]) + rcode[2*2 + 1];
+			sum110[2] = sum011[1] + (1-rcode[2*2]) + rcode[2*2 + 1];
+			sum111[1] = sum011[1] +    rcode[2*2]  + (1-rcode[2*2 + 1]);
+			pre000[2] = 0;
+			pre001[2] = 0;
+			pre010[2] = 4;
+			pre011[2] = 4;
+			pre100[2] = 2;
+			pre101[2] = 2;
+			pre110[2] = 6;
+			pre111[2] = 6;
+
+			int dh1, dh2, rh1, rh2;
+			for (j = 3; j < 259; j++) {
+				dh1 = rcode[2*j];
+				dh2 = rcode[2*j+1];
+				rh1 = 1-rcode[2*j];
+				rh2 = 1-rcode[2*j+1];
+
+				sum000[j] = (sum000[j-1] + dh1 + dh2) < (sum100[j-1] + rh1 + rh2) ? (sum000[j-1] + dh1 + dh2) : (sum100[j-1] + rh1 + rh2);
+				sum001[j] = (sum000[j-1] + rh1 + rh2) < (sum100[j-1] + dh1 + dh2) ? (sum000[j-1] + rh1 + rh2) : (sum100[j-1] + dh1 + dh2); 
+				sum010[j] = (sum001[j-1] + rh1 + rh2) < (sum101[j-1] + dh1 + dh2) ? (sum001[j-1] + rh1 + rh2) : (sum101[j-1] + dh1 + dh2);
+				sum011[j] = (sum001[j-1] + dh1 + dh2) < (sum101[j-1] + rh1 + rh2) ? (sum001[j-1] + dh1 + dh2) : (sum101[j-1] + rh1 + rh2);
+				sum100[j] = (sum010[j-1] + dh1 + rh2) < (sum110[j-1] + rh1 + dh2) ? (sum010[j-1] + dh1 + rh2) : (sum110[j-1] + rh1 + dh2);
+				sum101[j] = (sum010[j-1] + rh1 + dh2) < (sum110[j-1] + dh1 + rh2) ? (sum010[j-1] + rh1 + dh2) : (sum110[j-1] + dh1 + rh2);
+				sum110[j] = (sum011[j-1] + rh1 + dh2) < (sum111[j-1] + dh1 + rh2) ? (sum011[j-1] + rh1 + dh2) : (sum111[j-1] + dh1 + rh2);
+				sum111[j] = (sum011[j-1] + dh1 + rh2) < (sum111[j-1] + rh1 + dh2) ? (sum011[j-1] + dh1 + rh2) : (sum111[j-1] + rh1 + dh2);
+
+				pre000[j] = (sum000[j-1] + dh1 + dh2) < (sum100[j-1] + rh1 + rh2) ? 0 : 1;
+				pre001[j] = (sum000[j-1] + rh1 + rh2) < (sum100[j-1] + dh1 + dh2) ? 0 : 1;
+				pre010[j] = (sum001[j-1] + rh1 + rh2) < (sum101[j-1] + dh1 + dh2) ? 4 : 5;
+				pre011[j] = (sum001[j-1] + dh1 + dh2) < (sum101[j-1] + rh1 + rh2) ? 4 : 5;
+				pre100[j] = (sum010[j-1] + dh1 + rh2) < (sum110[j-1] + rh1 + dh2) ? 2 : 3; 
+				pre101[j] = (sum010[j-1] + rh1 + dh2) < (sum110[j-1] + dh1 + rh2) ? 2 : 3; 
+				pre110[j] = (sum011[j-1] + rh1 + dh2) < (sum111[j-1] + dh1 + rh2) ? 6 : 7; 
+				pre111[j] = (sum011[j-1] + dh1 + rh2) < (sum111[j-1] + rh1 + dh2) ? 6 : 7; 
+			}
+			int state = 0;
+			for (j = 258; j >= 0; j--) {
+				rdata[j] = (state == 0 || state == 1 || state == 2 || state == 3) ? 0 : 1;
+				state = (state==0) ? pre000[j] : ((state==1) ? pre100[j] : ((state==2) ? pre010[j] : ((state==3) ? pre110[j] : ((state==4) ? pre001[j] : ((state==5) ? pre101[j] : ((state==6) ? pre011[j]: pre111[j]))))));
+			}
+
+			/* 誤り回数計算 */
+			for (j = 0; j < LENGTH; j++){
+				if (rdata[j] == tdata[j]){
+					ok++;
+				} else {
+					error++;
+				}
+			}
+			printf("error : %ld\n",error);
 		}
-		printf("\nerror : %ld\n",error);
-		//}
 
 		/* BER計算 */
 		ber = (double)error / (double)(ok + error);
