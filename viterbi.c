@@ -37,12 +37,12 @@ int main() {
 	srand((unsigned)time(NULL));
 
 	printf("# SNR BER\n");
-	for(sn = 0.0; sn <= 0.2; sn += 0.25) {
-		m[0] = 0; m[1] = 0; m[2] = 0; m[3] = 0;
+	for(sn = 0.0; sn <= 6.0; sn += 0.25) {
 		ok = error = 0;
 		i = 0;
 
 		while (i < TEST) {   // 誤りが200回起きるまで，または100000回繰り返すまで
+			m[0] = 0; m[1] = 0; m[2] = 0; m[3] = 0;
 			i++;
 			// 送信データの生成
 			for (j = 0; j < LENGTH - 3; j++){
@@ -81,6 +81,7 @@ int main() {
 			/* 伝送 */
 			for (j = 0; j < LT3; j++){
 				receive[j] = transmit[j] + awgn(sn);
+				//receive[j] = transmit[j] + ((double)(rand()%100-50))/47;
 			}
 
 			/* BPSK復調 */
@@ -122,7 +123,7 @@ int main() {
 			pre110[2] = 6;
 			pre111[2] = 6;
 
-			int dh1, dh2, rh1, rh2;
+			int dh1 = 0, dh2 = 0, rh1 = 0, rh2 = 0;
 			for (j = 3; j < 259; j++) {
 				dh1 = rcode[2*j];
 				dh2 = rcode[2*j+1];
@@ -182,7 +183,9 @@ double awgn(double sn) {
 
 
 	//ガウス分布にしたがう乱数を発生させる
-	//
+	double z = sqrt(-2.0*log(rand())) * sin( 2.0 * M_PI * rand() );
+	var = sqrt(pow(10, -sn/10));
+	noise =  var * z;
 
 	return noise;
 }
